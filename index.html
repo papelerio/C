@@ -1,4 +1,38 @@
-<!DOCTYPE html>
+// Función para detectar colisiones
+        function checkCollisions() {
+            if (!gameRunning) return;
+            
+            let playerRect = player.getBoundingClientRect();
+            
+            for (let i = 0; i < enemyCars.length; i++) {
+                let enemyRect = enemyCars[i].getBoundingClientRect();
+                
+                // Verificar si hay colisión
+                if (playerRect.left < enemyRect.right &&
+                    playerRect.right > enemyRect.left &&
+                    playerRect.top < enemyRect.bottom &&
+                    playerRect.bottom > enemyRect.top) {
+                    
+                    // ¡COLISIÓN DETECTADA!
+                    gameOver();
+                    return;
+                }
+            }
+        }
+
+        // Función de Game Over
+        function gameOver() {
+            gameRunning = false;
+            clearInterval(spawnInterval);
+            
+            // Cambiar color del jugador para indicar colisión
+            player.style.background = '#ff6666';
+            player.style.border = '2px solid #ff0000';
+            
+            setTimeout(() => {
+                alert(`¡GAME OVER!\n\nPuntos: ${score}\nTiempo: ${gameTime} segundos\nVelocidad final: ${spawnMultiplier}%\n\nPresiona R para reiniciar`);
+            }, 100);
+        }<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -29,11 +63,10 @@
         #road {
             position: absolute;
             width: 250px;
-            height: 1200px;
+            height: 600px;
             background: #404040;
             left: 75px;
-            top: -600px;
-            animation: moveRoad 3s linear infinite;
+            top: 0px;
         }
         
         .roadLine {
@@ -43,7 +76,7 @@
             background: #fff;
             left: 50%;
             transform: translateX(-50%);
-            animation: moveRoad 3s linear infinite;
+            animation: moveLines 2s linear infinite;
         }
         
         #player {
@@ -65,8 +98,28 @@
             left: 10px;
             color: #333;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 16px;
             z-index: 100;
+        }
+
+        #gameInfo {
+            position: absolute;
+            top: 40px;
+            left: 10px;
+            color: #333;
+            font-weight: bold;
+            font-size: 12px;
+            z-index: 100;
+        }
+
+        .enemyCar {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #ff4444;
+            border-radius: 4px;
+            border: 2px solid #cc0000;
+            z-index: 5;
         }
         
         #instructions {
@@ -78,12 +131,12 @@
             z-index: 100;
         }
         
-        @keyframes moveRoad {
+        @keyframes moveLines {
             from {
-                transform: translateY(-600px);
+                transform: translateX(-50%) translateY(-80px);
             }
             to {
-                transform: translateY(0px);
+                transform: translateX(-50%) translateY(600px);
             }
         }
         
@@ -114,6 +167,10 @@
         <div id="player"></div>
         
         <div id="score">Puntos: 0</div>
+        <div id="gameInfo">
+            <div>Tiempo: <span id="timer">0</span>s</div>
+            <div>Velocidad Spawn: <span id="spawnRate">100</span>%</div>
+        </div>
         
         <div id="instructions">
             Usa las flechas ← → para moverte
@@ -126,8 +183,14 @@
         let road = document.getElementById('road');
         let gameContainer = document.getElementById('gameContainer');
         let scoreElement = document.getElementById('score');
+        let timerElement = document.getElementById('timer');
+        let spawnRateElement = document.getElementById('spawnRate');
         let score = 0;
         let gameRunning = true;
+        let gameTime = 0;
+        let spawnRate = 1000; // Millisegundos entre spawn de enemigos
+        let spawnMultiplier = 100; // Porcentaje de velocidad
+        let enemyCars = [];
         
         // Posición del jugador
         let playerPosition = 185; // Posición inicial centrada
@@ -135,18 +198,26 @@
         const roadRight = 325;
         const playerWidth = 30;
         
-        // Crear líneas de la carretera
+        // Crear líneas de la carretera en bucle infinito
         function createRoadLines() {
-            for(let i = 0; i < 15; i++) {
+            for(let i = 0; i < 12; i++) {
                 let line = document.createElement('div');
                 line.className = 'roadLine';
-                line.style.top = (i * 80) + 'px';
+                line.style.top = (i * 80 - 80) + 'px';
+                line.style.animationDelay = (i * 0.167) + 's';
                 road.appendChild(line);
             }
         }
         
         // Inicializar líneas de carretera
         createRoadLines();
+        
+        // Intervalos del juego
+        setInterval(updateGame, 100); // Actualizar puntos
+        setInterval(updateTimer, 1000); // Actualizar timer cada segundo
+        setInterval(moveEnemyCars, 50); // Mover enemigos
+        setInterval(checkCollisions, 30); // Detectar colisiones muy frecuentemente
+        let spawnInterval = setInterval(createEnemyCar, spawnRate); // Crear enemigos
         
         // Controles del jugador
         document.addEventListener('keydown', function(event) {
@@ -168,24 +239,90 @@
             }
         });
         
-        // Función para incrementar puntos
-        function updateScore() {
+        // Función para crear vehículos enemigos rojos
+        function createEnemyCar() {
+            if (!gameRunning) return;
+            
+            let enemyCar = document.createElement('div');
+            enemyCar.className = 'enemyCar';
+            
+            // Posición aleatoria en cualquier punto de la carretera
+            let randomX = roadLeft + 10 + Math.random() * (roadRight - roadLeft - 50);
+            enemyCar.style.left = randomX + 'px';
+            enemyCar.style.top = '-30px';
+            
+            gameContainer.appendChild(enemyCar);
+            enemyCars.push(enemyCar);
+        }
+
+        // Función para mover vehículos enemigos
+        function moveEnemyCars() {
+            for (let i = enemyCars.length - 1; i >= 0; i--) {
+                let car = enemyCars[i];
+                let currentTop = parseInt(car.style.top);
+                car.style.top = (currentTop + 5) + 'px'; // Aumenté de 3 a 5 la velocidad
+                
+                // Eliminar carros que salieron de la pantalla
+                if (currentTop > 600) {
+                    car.remove();
+                    enemyCars.splice(i, 1);
+                }
+            }
+        }
+
+        // Función para incrementar puntos y tiempo
+        function updateGame() {
             if(gameRunning) {
                 score += 1;
                 scoreElement.textContent = 'Puntos: ' + score;
             }
         }
-        
-        // Incrementar puntos cada segundo
-        setInterval(updateScore, 100);
-        
+
+        // Actualizar timer y dificultad
+        function updateTimer() {
+            if(gameRunning) {
+                gameTime++;
+                timerElement.textContent = gameTime;
+                
+                // Cada 10 segundos aumentar la velocidad de spawn un 10%
+                if (gameTime % 10 === 0) {
+                    spawnMultiplier += 10;
+                    spawnRate = Math.max(300, 1000 - (spawnMultiplier - 100) * 10);
+                    spawnRateElement.textContent = spawnMultiplier;
+                    
+                    // Reiniciar el intervalo de spawn con nueva velocidad
+                    clearInterval(spawnInterval);
+                    spawnInterval = setInterval(createEnemyCar, spawnRate);
+                }
+            }
+        }
+
         // Función para reiniciar el juego
         function resetGame() {
             playerPosition = 185;
             player.style.left = playerPosition + 'px';
+            
+            // Restaurar color original del jugador
+            player.style.background = '#fff';
+            player.style.border = '2px solid #333';
+            
             score = 0;
+            gameTime = 0;
+            spawnMultiplier = 100;
+            spawnRate = 1000;
             scoreElement.textContent = 'Puntos: ' + score;
+            timerElement.textContent = '0';
+            spawnRateElement.textContent = '100';
+            
+            // Limpiar vehículos enemigos
+            enemyCars.forEach(car => car.remove());
+            enemyCars = [];
+            
             gameRunning = true;
+            
+            // Reiniciar intervalos
+            clearInterval(spawnInterval);
+            spawnInterval = setInterval(createEnemyCar, spawnRate);
         }
         
         // Detectar tecla R para reiniciar
