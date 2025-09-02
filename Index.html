@@ -3,141 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Carrera</title>
+    <title>Juego de Carretera</title>
     <style>
         body {
             margin: 0;
             padding: 0;
+            background: #2d4a3e;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            background-color: #333;
-            overflow: hidden;
+            min-height: 100vh;
             font-family: Arial, sans-serif;
         }
         
-        #game-container {
+        #gameContainer {
+            background: #87ceeb;
+            width: 400px;
+            height: 600px;
             position: relative;
-            width: 300px;
-            height: 500px;
             overflow: hidden;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            border: 3px solid #333;
+            border-radius: 10px;
         }
         
         #road {
             position: absolute;
-            width: 100%;
-            height: 200%; /* Doble altura para el efecto infinito */
-            background: linear-gradient(to bottom, #555 0%, #555 20%, #fff 20%, #fff 40%, #555 40%, #555 60%, #fff 60%, #fff 80%, #555 80%, #555 100%);
-            background-size: 100% 50px; /* Tamaño de las líneas de la carretera */
-            animation: moveRoad 1s linear infinite;
+            width: 250px;
+            height: 1200px;
+            background: #404040;
+            left: 75px;
+            top: -600px;
+            animation: moveRoad 3s linear infinite;
         }
         
-        @keyframes moveRoad {
-            0% {
-                top: 0;
-            }
-            100% {
-                top: 100%; /* Mueve la carretera hacia arriba */
-            }
+        .roadLine {
+            position: absolute;
+            width: 8px;
+            height: 40px;
+            background: #fff;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: moveRoad 3s linear infinite;
         }
         
         #player {
             position: absolute;
-            bottom: 20px;
-            left: 135px; /* Centrado horizontalmente */
             width: 30px;
             height: 30px;
-            background-color: white;
-            border: 2px solid black;
+            background: #fff;
+            bottom: 50px;
+            left: 185px;
+            border-radius: 4px;
+            border: 2px solid #333;
+            z-index: 10;
+            transition: left 0.1s ease;
         }
         
         #score {
             position: absolute;
             top: 10px;
             left: 10px;
-            color: white;
-            font-size: 20px;
-            z-index: 10;
+            color: #333;
+            font-weight: bold;
+            font-size: 18px;
+            z-index: 100;
         }
         
         #instructions {
             position: absolute;
             bottom: 10px;
-            width: 100%;
-            text-align: center;
-            color: white;
-            z-index: 10;
+            left: 10px;
+            color: #333;
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        @keyframes moveRoad {
+            from {
+                transform: translateY(-600px);
+            }
+            to {
+                transform: translateY(0px);
+            }
+        }
+        
+        .grass {
+            position: absolute;
+            width: 75px;
+            height: 100%;
+            background: #90EE90;
+            top: 0;
+        }
+        
+        .grass.left {
+            left: 0;
+        }
+        
+        .grass.right {
+            right: 0;
         }
     </style>
 </head>
 <body>
-    <div id="game-container">
+    <div id="gameContainer">
+        <div class="grass left"></div>
+        <div class="grass right"></div>
+        
         <div id="road"></div>
+        
         <div id="player"></div>
+        
         <div id="score">Puntos: 0</div>
-        <div id="instructions">Usa las flechas ← → para moverte</div>
+        
+        <div id="instructions">
+            Usa las flechas ← → para moverte
+        </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const player = document.getElementById('player');
-            const road = document.getElementById('road');
-            const scoreElement = document.getElementById('score');
-            const gameContainer = document.getElementById('game-container');
+        // Variables del juego
+        let player = document.getElementById('player');
+        let road = document.getElementById('road');
+        let gameContainer = document.getElementById('gameContainer');
+        let scoreElement = document.getElementById('score');
+        let score = 0;
+        let gameRunning = true;
+        
+        // Posición del jugador
+        let playerPosition = 185; // Posición inicial centrada
+        const roadLeft = 75;
+        const roadRight = 325;
+        const playerWidth = 30;
+        
+        // Crear líneas de la carretera
+        function createRoadLines() {
+            for(let i = 0; i < 15; i++) {
+                let line = document.createElement('div');
+                line.className = 'roadLine';
+                line.style.top = (i * 80) + 'px';
+                road.appendChild(line);
+            }
+        }
+        
+        // Inicializar líneas de carretera
+        createRoadLines();
+        
+        // Controles del jugador
+        document.addEventListener('keydown', function(event) {
+            if(!gameRunning) return;
             
-            let playerX = 135; // Posición inicial del jugador
-            let score = 0;
-            let gameSpeed = 1; // Velocidad inicial del juego
-            
-            // Actualizar la puntuación cada 100ms
-            setInterval(() => {
-                score += 1;
-                scoreElement.textContent = `Puntos: ${score}`;
-                
-                // Aumentar la velocidad cada 500 puntos
-                if (score % 500 === 0) {
-                    gameSpeed += 0.2;
-                    road.style.animationDuration = `${1/gameSpeed}s`;
-                }
-            }, 100);
-            
-            // Controlar el movimiento del jugador
-            document.addEventListener('keydown', function(e) {
-                // Mover a la izquierda con flecha izquierda o tecla A
-                if (e.key === 'ArrowLeft' || e.key === 'a') {
-                    playerX = Math.max(0, playerX - 10);
-                }
-                // Mover a la derecha con flecha derecha o tecla D
-                else if (e.key === 'ArrowRight' || e.key === 'd') {
-                    playerX = Math.min(270, playerX + 10); // 300 (ancho contenedor) - 30 (ancho jugador) = 270
-                }
-                
-                player.style.left = `${playerX}px`;
-            });
-            
-            // También permitir control táctil para dispositivos móviles
-            let touchStartX = 0;
-            
-            gameContainer.addEventListener('touchstart', function(e) {
-                touchStartX = e.touches[0].clientX;
-                e.preventDefault();
-            });
-            
-            gameContainer.addEventListener('touchmove', function(e) {
-                const touchX = e.touches[0].clientX;
-                const diff = touchX - touchStartX;
-                
-                if (Math.abs(diff) > 10) { // Evitar movimientos demasiado sensibles
-                    playerX = Math.max(0, Math.min(270, playerX + diff/2));
-                    player.style.left = `${playerX}px`;
-                    touchStartX = touchX;
-                }
-                
-                e.preventDefault();
-            });
+            switch(event.key) {
+                case 'ArrowLeft':
+                    if(playerPosition > roadLeft + 10) {
+                        playerPosition -= 20;
+                        player.style.left = playerPosition + 'px';
+                    }
+                    break;
+                case 'ArrowRight':
+                    if(playerPosition < roadRight - playerWidth - 10) {
+                        playerPosition += 20;
+                        player.style.left = playerPosition + 'px';
+                    }
+                    break;
+            }
         });
+        
+        // Función para incrementar puntos
+        function updateScore() {
+            if(gameRunning) {
+                score += 1;
+                scoreElement.textContent = 'Puntos: ' + score;
+            }
+        }
+        
+        // Incrementar puntos cada segundo
+        setInterval(updateScore, 100);
+        
+        // Función para reiniciar el juego
+        function resetGame() {
+            playerPosition = 185;
+            player.style.left = playerPosition + 'px';
+            score = 0;
+            scoreElement.textContent = 'Puntos: ' + score;
+            gameRunning = true;
+        }
+        
+        // Detectar tecla R para reiniciar
+        document.addEventListener('keydown', function(event) {
+            if(event.key.toLowerCase() === 'r') {
+                resetGame();
+            }
+        });
+        
+        // Mensaje de inicio
+        setTimeout(function() {
+            alert('¡Bienvenido al Juego de Carretera!\n\nUsa las flechas ← → para moverte\nPresiona R para reiniciar\n\n¡Disfruta conduciendo!');
+        }, 500);
+        
     </script>
 </body>
 </html>
