@@ -1,38 +1,4 @@
-// Función para detectar colisiones
-        function checkCollisions() {
-            if (!gameRunning) return;
-            
-            let playerRect = player.getBoundingClientRect();
-            
-            for (let i = 0; i < enemyCars.length; i++) {
-                let enemyRect = enemyCars[i].getBoundingClientRect();
-                
-                // Verificar si hay colisión
-                if (playerRect.left < enemyRect.right &&
-                    playerRect.right > enemyRect.left &&
-                    playerRect.top < enemyRect.bottom &&
-                    playerRect.bottom > enemyRect.top) {
-                    
-                    // ¡COLISIÓN DETECTADA!
-                    gameOver();
-                    return;
-                }
-            }
-        }
-
-        // Función de Game Over
-        function gameOver() {
-            gameRunning = false;
-            clearInterval(spawnInterval);
-            
-            // Cambiar color del jugador para indicar colisión
-            player.style.background = '#ff6666';
-            player.style.border = '2px solid #ff0000';
-            
-            setTimeout(() => {
-                alert(`¡GAME OVER!\n\nPuntos: ${score}\nTiempo: ${gameTime} segundos\nVelocidad final: ${spawnMultiplier}%\n\nPresiona R para reiniciar`);
-            }, 100);
-        }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -211,6 +177,42 @@
         
         // Inicializar líneas de carretera
         createRoadLines();
+        
+        // Función para detectar colisiones
+        function checkCollisions() {
+            if (!gameRunning) return;
+            
+            let playerRect = player.getBoundingClientRect();
+            
+            for (let i = 0; i < enemyCars.length; i++) {
+                let enemyRect = enemyCars[i].getBoundingClientRect();
+                
+                // Verificar si hay colisión
+                if (playerRect.left < enemyRect.right &&
+                    playerRect.right > enemyRect.left &&
+                    playerRect.top < enemyRect.bottom &&
+                    playerRect.bottom > enemyRect.top) {
+                    
+                    // ¡COLISIÓN DETECTADA!
+                    gameOver();
+                    return;
+                }
+            }
+        }
+
+        // Función de Game Over
+        function gameOver() {
+            gameRunning = false;
+            clearInterval(spawnInterval);
+            
+            // Cambiar color del jugador para indicar colisión
+            player.style.background = '#ff6666';
+            player.style.border = '2px solid #ff0000';
+            
+            setTimeout(() => {
+                alert(`¡GAME OVER!\n\nPuntos: ${score}\nTiempo: ${gameTime} segundos\nVelocidad final: ${spawnMultiplier}%\n\nPresiona R para reiniciar`);
+            }, 100);
+        }
         
         // Intervalos del juego
         setInterval(updateGame, 100); // Actualizar puntos
