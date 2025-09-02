@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Carretera</title>
+    <title>Juego de Carretera Mejorado</title>
     <style>
         body {
             margin: 0;
@@ -55,7 +55,7 @@
             border-radius: 4px;
             border: 2px solid #333;
             z-index: 10;
-            transition: left 0.1s ease;
+            transition: left 0.1s ease, opacity 0.3s;
         }
         
         #score {
@@ -77,15 +77,50 @@
             font-size: 12px;
             z-index: 100;
         }
+        
+        #abilityInfo {
+            position: absolute;
+            top: 70px;
+            left: 10px;
+            color: #333;
+            font-weight: bold;
+            font-size: 12px;
+            z-index: 100;
+        }
 
         .enemyCar {
             position: absolute;
+            border-radius: 4px;
+            border: 2px solid #333;
+            z-index: 5;
+        }
+        
+        .redCar {
             width: 30px;
             height: 30px;
             background: #ff4444;
-            border-radius: 4px;
-            border: 2px solid #cc0000;
-            z-index: 5;
+            border-color: #cc0000;
+        }
+        
+        .yellowCar {
+            width: 30px;
+            height: 30px;
+            background: #ffcc00;
+            border-color: #cc9900;
+        }
+        
+        .greenCar {
+            width: 30px;
+            height: 30px;
+            background: #00cc44;
+            border-color: #009933;
+        }
+        
+        .purpleCar {
+            width: 30px;
+            height: 60px;
+            background: #cc66ff;
+            border-color: #9933cc;
         }
         
         #instructions {
@@ -95,6 +130,26 @@
             color: #333;
             font-size: 12px;
             z-index: 100;
+        }
+        
+        #cooldownBar {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 10px;
+            background: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            z-index: 100;
+        }
+        
+        #cooldownProgress {
+            height: 100%;
+            width: 100%;
+            background: #4caf50;
+            transition: width 0.3s;
         }
         
         @keyframes moveLines {
@@ -137,9 +192,12 @@
             <div>Tiempo: <span id="timer">0</span>s</div>
             <div>Velocidad Spawn: <span id="spawnRate">100</span>%</div>
         </div>
+        <div id="abilityInfo">Habilidad: Lista (Espacio)</div>
+        <div id="cooldownBar"><div id="cooldownProgress"></div></div>
         
         <div id="instructions">
-            Usa las flechas ← → para moverte
+            Usa las flechas ← → para moverte<br>
+            Espacio: Invulnerabilidad (2s) - Recarga: 3s
         </div>
     </div>
 
@@ -151,12 +209,20 @@
         let scoreElement = document.getElementById('score');
         let timerElement = document.getElementById('timer');
         let spawnRateElement = document.getElementById('spawnRate');
+        let abilityInfo = document.getElementById('abilityInfo');
+        let cooldownProgress = document.getElementById('cooldownProgress');
         let score = 0;
         let gameRunning = true;
         let gameTime = 0;
         let spawnRate = 1000; // Millisegundos entre spawn de enemigos
         let spawnMultiplier = 100; // Porcentaje de velocidad
         let enemyCars = [];
+        
+        // Variables de invulnerabilidad
+        let isInvulnerable = false;
+        let abilityReady = true;
+        let invulnerabilityTimer = 0;
+        let cooldownTimer = 0;
         
         // Posición del jugador
         let playerPosition = 185; // Posición inicial centrada
@@ -178,14 +244,47 @@
         // Inicializar líneas de carretera
         createRoadLines();
         
+        // Función para activar la invulnerabilidad
+        function activateInvulnerability() {
+            if (!abilityReady || !gameRunning) return;
+            
+            isInvulnerable = true;
+            abilityReady = false;
+            player.style.opacity = "0.5";
+            invulnerabilityTimer = 2; // 2 segundos de invulnerabilidad
+            abilityInfo.textContent = "Habilidad: Activa (2s)";
+            
+            // Iniciar recarga después de que termine la invulnerabilidad
+            setTimeout(() => {
+                isInvulnerable = false;
+                player.style.opacity = "1";
+                cooldownTimer = 3; // 3 segundos de recarga
+                updateCooldownBar();
+                abilityInfo.textContent = "Habilidad: Recargando...";
+            }, 2000);
+        }
+        
+        // Actualizar barra de recarga
+        function updateCooldownBar() {
+            if (cooldownTimer > 0) {
+                let progress = (3 - cooldownTimer) / 3;
+                cooldownProgress.style.width = (progress * 100) + "%";
+            } else if (!abilityReady) {
+                abilityReady = true;
+                cooldownProgress.style.width = "100%";
+                abilityInfo.textContent = "Habilidad: Lista (Espacio)";
+            }
+        }
+        
         // Función para detectar colisiones
         function checkCollisions() {
-            if (!gameRunning) return;
+            if (!gameRunning || isInvulnerable) return;
             
             let playerRect = player.getBoundingClientRect();
             
             for (let i = 0; i < enemyCars.length; i++) {
-                let enemyRect = enemyCars[i].getBoundingClientRect();
+                let enemy = enemyCars[i];
+                let enemyRect = enemy.element.getBoundingClientRect();
                 
                 // Verificar si hay colisión
                 if (playerRect.left < enemyRect.right &&
@@ -219,6 +318,15 @@
         setInterval(updateTimer, 1000); // Actualizar timer cada segundo
         setInterval(moveEnemyCars, 50); // Mover enemigos
         setInterval(checkCollisions, 30); // Detectar colisiones muy frecuentemente
+        
+        // Temporizador para la invulnerabilidad y recarga
+        setInterval(() => {
+            if (cooldownTimer > 0) {
+                cooldownTimer -= 0.1;
+                updateCooldownBar();
+            }
+        }, 100);
+        
         let spawnInterval = setInterval(createEnemyCar, spawnRate); // Crear enemigos
         
         // Controles del jugador
@@ -238,34 +346,93 @@
                         player.style.left = playerPosition + 'px';
                     }
                     break;
+                case ' ':
+                    activateInvulnerability();
+                    break;
             }
         });
         
-        // Función para crear vehículos enemigos rojos
+        // Función para crear vehículos enemigos
         function createEnemyCar() {
             if (!gameRunning) return;
             
+            let randomType = Math.random() * 100;
             let enemyCar = document.createElement('div');
-            enemyCar.className = 'enemyCar';
+            let carType, carSpeed, carBehavior;
+            
+            // Determinar el tipo de auto según las probabilidades
+            if (randomType < 50) {
+                // Auto rojo (50%)
+                enemyCar.className = 'enemyCar redCar';
+                carType = 'red';
+                carSpeed = 5;
+                carBehavior = 'normal';
+            } else if (randomType < 70) {
+                // Auto amarillo (20%)
+                enemyCar.className = 'enemyCar yellowCar';
+                carType = 'yellow';
+                carSpeed = 6.25; // 25% más rápido
+                carBehavior = 'normal';
+            } else if (randomType < 90) {
+                // Auto verde (20%)
+                enemyCar.className = 'enemyCar greenCar';
+                carType = 'green';
+                carSpeed = 5;
+                carBehavior = 'drunk';
+            } else {
+                // Auto morado (10%)
+                enemyCar.className = 'enemyCar purpleCar';
+                carType = 'purple';
+                carSpeed = 5;
+                carBehavior = 'normal';
+            }
             
             // Posición aleatoria en cualquier punto de la carretera
             let randomX = roadLeft + 10 + Math.random() * (roadRight - roadLeft - 50);
             enemyCar.style.left = randomX + 'px';
-            enemyCar.style.top = '-30px';
+            enemyCar.style.top = carType === 'purple' ? '-60px' : '-30px';
             
             gameContainer.appendChild(enemyCar);
-            enemyCars.push(enemyCar);
+            
+            // Almacenar información adicional del enemigo
+            enemyCars.push({
+                element: enemyCar,
+                type: carType,
+                speed: carSpeed,
+                behavior: carBehavior,
+                x: randomX,
+                y: carType === 'purple' ? -60 : -30,
+                timeOnScreen: 0,
+                direction: 'down'
+            });
         }
 
         // Función para mover vehículos enemigos
         function moveEnemyCars() {
             for (let i = enemyCars.length - 1; i >= 0; i--) {
-                let car = enemyCars[i];
-                let currentTop = parseInt(car.style.top);
-                car.style.top = (currentTop + 5) + 'px'; // Aumenté de 3 a 5 la velocidad
+                let enemy = enemyCars[i];
+                let car = enemy.element;
+                
+                // Incrementar tiempo en pantalla
+                enemy.timeOnScreen += 0.05;
+                
+                // Comportamiento especial para autos verdes (ebrios)
+                if (enemy.behavior === 'drunk' && enemy.timeOnScreen >= 3) {
+                    // Moverse hacia el jugador
+                    if (playerPosition > enemy.x + 15) {
+                        enemy.x += 1;
+                    } else if (playerPosition < enemy.x + 15) {
+                        enemy.x -= 1;
+                    }
+                }
+                
+                // Mover el auto hacia abajo
+                enemy.y += enemy.speed;
+                car.style.top = enemy.y + 'px';
+                car.style.left = enemy.x + 'px';
                 
                 // Eliminar carros que salieron de la pantalla
-                if (currentTop > 600) {
+                if (enemy.y > 600) {
                     car.remove();
                     enemyCars.splice(i, 1);
                 }
@@ -307,6 +474,15 @@
             // Restaurar color original del jugador
             player.style.background = '#fff';
             player.style.border = '2px solid #333';
+            player.style.opacity = "1";
+            
+            // Reiniciar habilidades
+            isInvulnerable = false;
+            abilityReady = true;
+            invulnerabilityTimer = 0;
+            cooldownTimer = 0;
+            cooldownProgress.style.width = "100%";
+            abilityInfo.textContent = "Habilidad: Lista (Espacio)";
             
             score = 0;
             gameTime = 0;
@@ -317,7 +493,7 @@
             spawnRateElement.textContent = '100';
             
             // Limpiar vehículos enemigos
-            enemyCars.forEach(car => car.remove());
+            enemyCars.forEach(enemy => enemy.element.remove());
             enemyCars = [];
             
             gameRunning = true;
@@ -336,7 +512,7 @@
         
         // Mensaje de inicio
         setTimeout(function() {
-            alert('¡Bienvenido al Juego de Carretera!\n\nUsa las flechas ← → para moverte\nPresiona R para reiniciar\n\n¡Disfruta conduciendo!');
+            alert('¡Bienvenido al Juego de Carretera Mejorado!\n\nUsa las flechas ← → para moverte\nEspacio: Activar invulnerabilidad (2s de duración, 3s de recarga)\n\n¡Disfruta conduciendo!');
         }, 500);
         
     </script>
