@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Carretera con Ciclo Visual</title>
+    <title>Juego de Carretera con Ciclo Día/Noche</title>
     <style>
         * {
             box-sizing: border-box;
@@ -38,19 +38,6 @@
             border: 3px solid #333;
             border-radius: 10px;
             flex-shrink: 0;
-            transition: background 5s ease;
-        }
-        
-        #environmentOverlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 20;
-            opacity: 0;
-            transition: opacity 5s ease;
         }
         
         #road {
@@ -105,22 +92,19 @@
             z-index: 100;
         }
         
-        #environmentInfo {
+        #abilityInfo {
             position: absolute;
-            top: 100px;
+            top: 70px;
             left: 10px;
             color: #333;
             font-weight: bold;
             font-size: 12px;
             z-index: 100;
-            background: rgba(255, 255, 255, 0.7);
-            padding: 5px;
-            border-radius: 5px;
         }
         
-        #abilityInfo {
+        #timeOfDay {
             position: absolute;
-            top: 70px;
+            top: 100px;
             left: 10px;
             color: #333;
             font-weight: bold;
@@ -133,7 +117,6 @@
             border-radius: 4px;
             border: 2px solid #333;
             z-index: 5;
-            transition: all 0.5s ease;
         }
         
         .redCar {
@@ -166,19 +149,12 @@
         
         .carLight {
             position: absolute;
-            width: 6px;
-            height: 6px;
+            width: 10px;
+            height: 5px;
             background: yellow;
-            border-radius: 50%;
-            z-index: 6;
+            border-radius: 2px;
             opacity: 0;
-            transition: opacity 0.5s ease;
-            animation: lightFlicker 1.5s infinite alternate;
-        }
-        
-        @keyframes lightFlicker {
-            0% { opacity: 0.8; }
-            100% { opacity: 1; }
+            z-index: 6;
         }
         
         #instructions {
@@ -309,15 +285,6 @@
             font-size: 14px;
         }
         
-        @keyframes moveLines {
-            from {
-                transform: translateX(-50%) translateY(-80px);
-            }
-            to {
-                transform: translateX(-50%) translateY(600px);
-            }
-        }
-        
         .grass {
             position: absolute;
             width: 75px;
@@ -344,66 +311,62 @@
             z-index: 8;
         }
         
-        /* Modo atardecer */
+        /* Filtros para las diferentes horas del día */
+        #timeFilter {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 5s ease;
+        }
+        
+        /* Efectos específicos para cada fase del día */
         .sunset .grass.left,
         .sunset .grass.right {
-            background: #ffa500;
+            background: #e6b87a; /* Césped anaranjado suave */
         }
         
-        .sunset #gameContainer {
-            background: #ffb380;
-        }
-        
-        .sunset #environmentOverlay {
-            background: rgba(255, 165, 0, 0.2);
+        .sunset #timeFilter {
+            background: rgba(255, 165, 0, 0.2); /* Filtro anaranjado 20% */
             opacity: 1;
         }
         
-        /* Modo noche */
         .night .grass.left,
         .night .grass.right {
-            background: #444;
+            background: #2c3e50; /* Césped oscuro */
         }
         
-        .night #gameContainer {
-            background: #003366;
-        }
-        
-        .night #environmentOverlay {
-            background: rgba(0, 0, 50, 0.7);
+        .night #timeFilter {
+            background: rgba(0, 0, 80, 0.3); /* Filtro azul oscuro 30% */
             opacity: 1;
         }
         
-        .night .roadLine {
-            background: #aaa;
+        .night .carLight {
+            opacity: 0.8; /* Luces de los coches visibles */
         }
         
-        .night .enemyCar {
-            border-color: #555;
-        }
-        
-        .night #score,
-        .night #gameInfo,
-        .night #abilityInfo,
-        .night #environmentInfo,
-        .night #instructions {
-            color: #fff;
-            text-shadow: 0 0 3px #000;
-        }
-        
-        .night #environmentInfo {
-            background: rgba(0, 0, 0, 0.5);
+        @keyframes moveLines {
+            from {
+                transform: translateX(-50%) translateY(-80px);
+            }
+            to {
+                transform: translateX(-50%) translateY(600px);
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div id="gameContainer">
-            <div id="environmentOverlay"></div>
             <div class="grass left"></div>
             <div class="grass right"></div>
             
             <div id="road"></div>
+            <div id="timeFilter"></div>
             
             <div id="player"></div>
             
@@ -413,12 +376,14 @@
                 <div>Velocidad Spawn: <span id="spawnRate">100</span>%</div>
             </div>
             <div id="abilityInfo">Habilidad: Lista (Espacio)</div>
-            <div id="environmentInfo">Ambiente: Día</div>
+            <div id="timeOfDay">Hora: Día</div>
+            
             <div id="cooldownBar"><div id="cooldownProgress"></div></div>
             
             <div id="instructions">
                 Usa las flechas ← → para moverte<br>
-                Espacio: Invulnerabilidad (2s) - Recarga: 3s
+                Espacio: Invulnerabilidad (2s) - Recarga: 3s<br>
+                X: Disparar (si tienes la mejora)
             </div>
         </div>
         
@@ -460,15 +425,15 @@
         let player = document.getElementById('player');
         let road = document.getElementById('road');
         let gameContainer = document.getElementById('gameContainer');
-        let environmentOverlay = document.getElementById('environmentOverlay');
-        let environmentInfo = document.getElementById('environmentInfo');
         let scoreElement = document.getElementById('score');
         let timerElement = document.getElementById('timer');
         let spawnRateElement = document.getElementById('spawnRate');
         let abilityInfo = document.getElementById('abilityInfo');
+        let timeOfDayElement = document.getElementById('timeOfDay');
         let cooldownProgress = document.getElementById('cooldownProgress');
         let lastScoreElement = document.getElementById('lastScore');
         let startButton = document.getElementById('startButton');
+        let timeFilter = document.getElementById('timeFilter');
         let score = 0;
         let gameRunning = false;
         let gameTime = 0;
@@ -477,15 +442,15 @@
         let enemyCars = [];
         let bullets = [];
         
-        // Variables de ambiente
-        let currentEnvironment = 'day'; // day, sunset, night
-        let environmentTimer = 0;
-        
         // Variables de invulnerabilidad
         let isInvulnerable = false;
         let abilityReady = true;
         let invulnerabilityTimer = 0;
         let cooldownTimer = 0;
+        
+        // Variables para el ciclo día/noche
+        let timePhase = 'day'; // day, sunset, night
+        let phaseChangeTime = 0;
         
         // Posición del jugador
         let playerPosition = 185;
@@ -593,32 +558,49 @@
         // Inicializar líneas de carretera
         createRoadLines();
         
-        // Cambiar ambiente del juego
-        function changeEnvironment(environment) {
-            currentEnvironment = environment;
-            gameContainer.className = environment;
-            
-            switch(environment) {
-                case 'day':
-                    environmentInfo.textContent = 'Ambiente: Día';
-                    break;
-                case 'sunset':
-                    environmentInfo.textContent = 'Ambiente: Atardecer';
-                    break;
-                case 'night':
-                    environmentInfo.textContent = 'Ambiente: Noche';
-                    // Activar luces en los autos existentes
+        // Función para cambiar la fase del día
+        function updateTimeOfDay() {
+            // Cada 20 segundos cambia la fase
+            if (gameTime - phaseChangeTime >= 20) {
+                phaseChangeTime = gameTime;
+                
+                // Remover todas las clases de fase
+                gameContainer.classList.remove('day', 'sunset', 'night');
+                
+                // Cambiar a la siguiente fase
+                if (timePhase === 'day') {
+                    timePhase = 'sunset';
+                    timeOfDayElement.textContent = 'Hora: Atardecer';
+                    gameContainer.classList.add('sunset');
+                } else if (timePhase === 'sunset') {
+                    timePhase = 'night';
+                    timeOfDayElement.textContent = 'Hora: Noche';
+                    gameContainer.classList.add('night');
+                    
+                    // Activar luces de coches existentes
                     enemyCars.forEach(car => {
-                        if (!car.lightAdded) {
+                        if (!car.lightElement) {
                             let light = document.createElement('div');
                             light.className = 'carLight';
-                            light.style.left = '5px';
-                            light.style.top = '5px';
+                            light.style.bottom = '0px';
+                            light.style.left = '10px';
                             car.element.appendChild(light);
-                            car.lightAdded = true;
+                            car.lightElement = light;
                         }
                     });
-                    break;
+                } else {
+                    timePhase = 'day';
+                    timeOfDayElement.textContent = 'Hora: Día';
+                    gameContainer.classList.add('day');
+                    
+                    // Desactivar luces de coches
+                    enemyCars.forEach(car => {
+                        if (car.lightElement) {
+                            car.lightElement.remove();
+                            car.lightElement = null;
+                        }
+                    });
+                }
             }
         }
         
@@ -762,7 +744,7 @@
         }
         
         // Intervalos del juego
-        let gameInterval, timerInterval, enemyMoveInterval, collisionInterval, cooldownInterval, bulletInterval, environmentInterval;
+        let gameInterval, timerInterval, enemyMoveInterval, collisionInterval, cooldownInterval, bulletInterval;
         
         function startGameIntervals() {
             gameInterval = setInterval(updateGame, 100);
@@ -778,9 +760,6 @@
                 }
             }, 100);
             
-            // Intervalo para cambiar ambiente cada 20 segundos
-            environmentInterval = setInterval(updateEnvironment, 20000);
-            
             spawnInterval = setInterval(createEnemyCar, spawnRate);
         }
         
@@ -791,48 +770,8 @@
             clearInterval(collisionInterval);
             clearInterval(cooldownInterval);
             clearInterval(bulletInterval);
-            clearInterval(environmentInterval);
             clearInterval(spawnInterval);
         }
-        
-        // Cambiar ambiente cada 20 segundos
-        function updateEnvironment() {
-            if (!gameRunning) return;
-            
-            if (currentEnvironment === 'day') {
-                changeEnvironment('sunset');
-            } else if (currentEnvironment === 'sunset') {
-                changeEnvironment('night');
-            } else {
-                changeEnvironment('day');
-            }
-        }
-        
-        // Controles del jugador
-        document.addEventListener('keydown', function(event) {
-            if(!gameRunning) return;
-            
-            switch(event.key) {
-                case 'ArrowLeft':
-                    if(playerPosition > roadLeft + 10) {
-                        playerPosition -= 20;
-                        player.style.left = playerPosition + 'px';
-                    }
-                    break;
-                case 'ArrowRight':
-                    if(playerPosition < roadRight - playerWidth - 10) {
-                        playerPosition += 20;
-                        player.style.left = playerPosition + 'px';
-                    }
-                    break;
-                case ' ':
-                    activateInvulnerability();
-                    break;
-                case 'x':
-                    shoot();
-                    break;
-            }
-        });
         
         // Función para crear vehículos enemigos
         function createEnemyCar() {
@@ -870,16 +809,7 @@
             
             gameContainer.appendChild(enemyCar);
             
-            // Añadir luces si es de noche
-            if (currentEnvironment === 'night') {
-                let light = document.createElement('div');
-                light.className = 'carLight';
-                light.style.left = '5px';
-                light.style.top = '5px';
-                enemyCar.appendChild(light);
-            }
-            
-            enemyCars.push({
+            let carData = {
                 element: enemyCar,
                 type: carType,
                 speed: carSpeed,
@@ -888,8 +818,20 @@
                 y: carType === 'purple' ? -60 : -30,
                 timeOnScreen: 0,
                 direction: 'down',
-                lightAdded: currentEnvironment === 'night'
-            });
+                lightElement: null
+            };
+            
+            // Si es de noche, añadir luz al coche
+            if (timePhase === 'night') {
+                let light = document.createElement('div');
+                light.className = 'carLight';
+                light.style.bottom = '0px';
+                light.style.left = '10px';
+                enemyCar.appendChild(light);
+                carData.lightElement = light;
+            }
+            
+            enemyCars.push(carData);
         }
 
         // Función para mover vehículos enemigos
@@ -933,6 +875,9 @@
                 gameTime++;
                 timerElement.textContent = gameTime;
                 
+                // Actualizar la hora del día
+                updateTimeOfDay();
+                
                 if (gameTime % 10 === 0) {
                     spawnMultiplier += 10;
                     spawnRate = Math.max(300, 1000 - (spawnMultiplier - 100) * 10);
@@ -963,6 +908,13 @@
             cooldownProgress.style.width = "100%";
             abilityInfo.textContent = "Habilidad: Lista (Espacio)";
             
+            // Reiniciar ciclo día/noche
+            timePhase = 'day';
+            phaseChangeTime = 0;
+            timeOfDayElement.textContent = 'Hora: Día';
+            gameContainer.className = '';
+            gameContainer.classList.add('day');
+            
             score = 0;
             gameTime = 0;
             spawnMultiplier = 100;
@@ -970,9 +922,6 @@
             scoreElement.textContent = 'Puntos: ' + score;
             timerElement.textContent = '0';
             spawnRateElement.textContent = '100';
-            
-            // Reiniciar ambiente
-            changeEnvironment('day');
             
             // Limpiar vehículos enemigos y balas
             enemyCars.forEach(enemy => enemy.element.remove());
@@ -1006,6 +955,29 @@
             if(event.key.toLowerCase() === 'r' && !gameRunning) {
                 resetGame();
             }
+            
+            if(gameRunning) {
+                switch(event.key) {
+                    case 'ArrowLeft':
+                        if(playerPosition > roadLeft + 10) {
+                            playerPosition -= 20;
+                            player.style.left = playerPosition + 'px';
+                        }
+                        break;
+                    case 'ArrowRight':
+                        if(playerPosition < roadRight - playerWidth - 10) {
+                            playerPosition += 20;
+                            player.style.left = playerPosition + 'px';
+                        }
+                        break;
+                    case ' ':
+                        activateInvulnerability();
+                        break;
+                    case 'x':
+                        shoot();
+                        break;
+                }
+            }
         });
         
         // Cargar estadísticas al inicio
@@ -1013,7 +985,7 @@
         
         // Mensaje de inicio
         setTimeout(function() {
-            alert('¡Bienvenido al Juego de Carretera con Ciclo Visual!\n\nUsa las flechas ← → para moverte\nEspacio: Invulnerabilidad (2s)\nX: Disparar (si tienes la mejora)\n\nCada 20 segundos el ambiente cambiará entre día, atardecer y noche.');
+            alert('¡Bienvenido al Juego de Carretera con Ciclo Día/Noche!\n\nUsa las flechas ← → para moverte\nEspacio: Invulnerabilidad (2s)\nX: Disparar (si tienes la mejora)\n\nEl ambiente cambiará cada 20 segundos entre día, atardecer y noche.');
         }, 500);
         
     </script>
