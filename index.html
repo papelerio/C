@@ -3,17 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Carretera Mejorado</title>
+    <title>Juego de Carretera con Tienda</title>
     <style>
-        body {
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
+        }
+        
+        body {
             background: #2d4a3e;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             font-family: Arial, sans-serif;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 900px;
+            width: 100%;
         }
         
         #gameContainer {
@@ -24,6 +37,7 @@
             overflow: hidden;
             border: 3px solid #333;
             border-radius: 10px;
+            flex-shrink: 0;
         }
         
         #road {
@@ -152,6 +166,105 @@
             transition: width 0.3s;
         }
         
+        #shop {
+            background: #3a3a3a;
+            border-radius: 10px;
+            padding: 15px;
+            width: 300px;
+            border: 2px solid #555;
+        }
+        
+        #shop h2 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #ffcc00;
+        }
+        
+        #lastScore {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #4caf50;
+        }
+        
+        .upgrade {
+            background: #555;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .upgrade:hover {
+            background: #666;
+        }
+        
+        .upgrade.disabled {
+            background: #333;
+            color: #777;
+            cursor: not-allowed;
+        }
+        
+        .upgrade h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        
+        .upgrade p {
+            font-size: 14px;
+            color: #ccc;
+        }
+        
+        .upgrade .price {
+            color: #ffcc00;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        #startButton {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+        
+        #startButton:hover {
+            background: #3e8e41;
+        }
+        
+        #startButton:disabled {
+            background: #333;
+            color: #777;
+            cursor: not-allowed;
+        }
+        
+        .stats {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #555;
+        }
+        
+        .stats h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #ffcc00;
+        }
+        
+        .stats p {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
         @keyframes moveLines {
             from {
                 transform: translateX(-50%) translateY(-80px);
@@ -176,28 +289,70 @@
         .grass.right {
             right: 0;
         }
+        
+        .bullet {
+            position: absolute;
+            width: 4px;
+            height: 10px;
+            background: yellow;
+            z-index: 8;
+        }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <div class="grass left"></div>
-        <div class="grass right"></div>
-        
-        <div id="road"></div>
-        
-        <div id="player"></div>
-        
-        <div id="score">Puntos: 0</div>
-        <div id="gameInfo">
-            <div>Tiempo: <span id="timer">0</span>s</div>
-            <div>Velocidad Spawn: <span id="spawnRate">100</span>%</div>
+    <div class="container">
+        <div id="gameContainer">
+            <div class="grass left"></div>
+            <div class="grass right"></div>
+            
+            <div id="road"></div>
+            
+            <div id="player"></div>
+            
+            <div id="score">Puntos: 0</div>
+            <div id="gameInfo">
+                <div>Tiempo: <span id="timer">0</span>s</div>
+                <div>Velocidad Spawn: <span id="spawnRate">100</span>%</div>
+            </div>
+            <div id="abilityInfo">Habilidad: Lista (Espacio)</div>
+            <div id="cooldownBar"><div id="cooldownProgress"></div></div>
+            
+            <div id="instructions">
+                Usa las flechas ← → para moverte<br>
+                Espacio: Invulnerabilidad (2s) - Recarga: 3s
+            </div>
         </div>
-        <div id="abilityInfo">Habilidad: Lista (Espacio)</div>
-        <div id="cooldownBar"><div id="cooldownProgress"></div></div>
         
-        <div id="instructions">
-            Usa las flechas ← → para moverte<br>
-            Espacio: Invulnerabilidad (2s) - Recarga: 3s
+        <div id="shop">
+            <h2>Tienda de Mejoras</h2>
+            <div id="lastScore">Puntos disponibles: 0</div>
+            
+            <div class="upgrade" id="lifeUpgrade">
+                <h3>Vida Extra</h3>
+                <p>Aguanta 1 impacto más antes de morir</p>
+                <div class="price">Precio: <span id="lifePrice">600</span> pts</div>
+            </div>
+            
+            <div class="upgrade" id="shotUpgrade">
+                <h3>Disparo Básico</h3>
+                <p>Ahora puedes destruir obstáculos (6 disparos)</p>
+                <div class="price">Precio: 200 pts</div>
+            </div>
+            
+            <div class="upgrade" id="bulletUpgrade">
+                <h3>Bala Mejorada</h3>
+                <p>Los coches se destruyen con -1 bala menos</p>
+                <div class="price">Precio: <span id="bulletPrice">1000</span> pts</div>
+            </div>
+            
+            <button id="startButton">Comenzar Juego</button>
+            
+            <div class="stats">
+                <h3>Tus Estadísticas</h3>
+                <p id="livesStat">Vidas: 1</p>
+                <p id="shotsStat">Disparos: No</p>
+                <p id="bulletStat">Balas requeridas: -</p>
+            </div>
         </div>
     </div>
 
@@ -211,12 +366,15 @@
         let spawnRateElement = document.getElementById('spawnRate');
         let abilityInfo = document.getElementById('abilityInfo');
         let cooldownProgress = document.getElementById('cooldownProgress');
+        let lastScoreElement = document.getElementById('lastScore');
+        let startButton = document.getElementById('startButton');
         let score = 0;
-        let gameRunning = true;
+        let gameRunning = false;
         let gameTime = 0;
-        let spawnRate = 1000; // Millisegundos entre spawn de enemigos
-        let spawnMultiplier = 100; // Porcentaje de velocidad
+        let spawnRate = 1000;
+        let spawnMultiplier = 100;
         let enemyCars = [];
+        let bullets = [];
         
         // Variables de invulnerabilidad
         let isInvulnerable = false;
@@ -225,12 +383,98 @@
         let cooldownTimer = 0;
         
         // Posición del jugador
-        let playerPosition = 185; // Posición inicial centrada
+        let playerPosition = 185;
         const roadLeft = 75;
         const roadRight = 325;
         const playerWidth = 30;
         
-        // Crear líneas de la carretera en bucle infinito
+        // Sistema de mejoras
+        let playerStats = {
+            points: 0,
+            lives: 1,
+            hasShots: false,
+            bulletsRequired: 0,
+            lifeUpgradePrice: 600,
+            bulletUpgradePrice: 1000,
+            shotUpgradeBought: false,
+            lifeUpgradeCount: 0
+        };
+        
+        // Cargar estadísticas desde localStorage
+        function loadStats() {
+            const savedStats = localStorage.getItem('playerStats');
+            if (savedStats) {
+                playerStats = JSON.parse(savedStats);
+                updateShopDisplay();
+            }
+        }
+        
+        // Guardar estadísticas en localStorage
+        function saveStats() {
+            localStorage.setItem('playerStats', JSON.stringify(playerStats));
+            updateShopDisplay();
+        }
+        
+        // Actualizar la visualización de la tienda
+        function updateShopDisplay() {
+            lastScoreElement.textContent = `Puntos disponibles: ${playerStats.points}`;
+            document.getElementById('lifePrice').textContent = playerStats.lifeUpgradePrice;
+            document.getElementById('bulletPrice').textContent = playerStats.bulletUpgradePrice;
+            
+            document.getElementById('livesStat').textContent = `Vidas: ${playerStats.lives}`;
+            document.getElementById('shotsStat').textContent = `Disparos: ${playerStats.hasShots ? 'Sí' : 'No'}`;
+            document.getElementById('bulletStat').textContent = playerStats.hasShots ? 
+                `Balas requeridas: ${playerStats.bulletsRequired > 0 ? playerStats.bulletsRequired : '1 (Máximo)'}` : 
+                'Balas requeridas: -';
+            
+            // Deshabilitar mejoras si no hay puntos suficientes
+            document.getElementById('lifeUpgrade').classList.toggle('disabled', 
+                playerStats.points < playerStats.lifeUpgradePrice);
+            document.getElementById('shotUpgrade').classList.toggle('disabled', 
+                playerStats.points < 200 || playerStats.shotUpgradeBought);
+            document.getElementById('bulletUpgrade').classList.toggle('disabled', 
+                playerStats.points < playerStats.bulletUpgradePrice || playerStats.bulletsRequired <= 1);
+        }
+        
+        // Comprar mejora de vida
+        function buyLifeUpgrade() {
+            if (playerStats.points >= playerStats.lifeUpgradePrice) {
+                playerStats.points -= playerStats.lifeUpgradePrice;
+                playerStats.lives += 1;
+                playerStats.lifeUpgradeCount += 1;
+                playerStats.lifeUpgradePrice += 200;
+                saveStats();
+            }
+        }
+        
+        // Comprar mejora de disparo
+        function buyShotUpgrade() {
+            if (!playerStats.shotUpgradeBought && playerStats.points >= 200) {
+                playerStats.points -= 200;
+                playerStats.hasShots = true;
+                playerStats.bulletsRequired = 6;
+                playerStats.shotUpgradeBought = true;
+                saveStats();
+            }
+        }
+        
+        // Comprar mejora de bala
+        function buyBulletUpgrade() {
+            if (playerStats.hasShots && playerStats.bulletsRequired > 1 && 
+                playerStats.points >= playerStats.bulletUpgradePrice) {
+                playerStats.points -= playerStats.bulletUpgradePrice;
+                playerStats.bulletsRequired -= 1;
+                playerStats.bulletUpgradePrice += 1000;
+                saveStats();
+            }
+        }
+        
+        // Configurar eventos de la tienda
+        document.getElementById('lifeUpgrade').addEventListener('click', buyLifeUpgrade);
+        document.getElementById('shotUpgrade').addEventListener('click', buyShotUpgrade);
+        document.getElementById('bulletUpgrade').addEventListener('click', buyBulletUpgrade);
+        
+        // Crear líneas de la carretera
         function createRoadLines() {
             for(let i = 0; i < 12; i++) {
                 let line = document.createElement('div');
@@ -251,14 +495,13 @@
             isInvulnerable = true;
             abilityReady = false;
             player.style.opacity = "0.5";
-            invulnerabilityTimer = 2; // 2 segundos de invulnerabilidad
+            invulnerabilityTimer = 2;
             abilityInfo.textContent = "Habilidad: Activa (2s)";
             
-            // Iniciar recarga después de que termine la invulnerabilidad
             setTimeout(() => {
                 isInvulnerable = false;
                 player.style.opacity = "1";
-                cooldownTimer = 3; // 3 segundos de recarga
+                cooldownTimer = 3;
                 updateCooldownBar();
                 abilityInfo.textContent = "Habilidad: Recargando...";
             }, 2000);
@@ -276,6 +519,63 @@
             }
         }
         
+        // Función para disparar
+        function shoot() {
+            if (!playerStats.hasShots || !gameRunning) return;
+            
+            let bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            bullet.style.left = (playerPosition + 13) + 'px';
+            bullet.style.bottom = '60px';
+            gameContainer.appendChild(bullet);
+            
+            bullets.push({
+                element: bullet,
+                x: playerPosition + 13,
+                y: 600 - 60 // Calculado desde abajo
+            });
+        }
+        
+        // Mover balas y detectar colisiones
+        function moveBullets() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let bullet = bullets[i];
+                bullet.y -= 8; // Velocidad de la bala
+                bullet.element.style.bottom = (600 - bullet.y) + 'px';
+                
+                // Eliminar balas que salieron de la pantalla
+                if (bullet.y < 0) {
+                    bullet.element.remove();
+                    bullets.splice(i, 1);
+                    continue;
+                }
+                
+                // Detectar colisiones con autos
+                for (let j = enemyCars.length - 1; j >= 0; j--) {
+                    let enemy = enemyCars[j];
+                    
+                    if (Math.abs(bullet.x - (enemy.x + 15)) < 15 && 
+                        Math.abs(bullet.y - enemy.y) < 30) {
+                        
+                        // Colisión de bala con auto
+                        enemy.hits = (enemy.hits || 0) + 1;
+                        
+                        if (enemy.hits >= playerStats.bulletsRequired) {
+                            // Destruir auto
+                            enemy.element.remove();
+                            enemyCars.splice(j, 1);
+                            score += 50; // Puntos por destruir auto
+                        }
+                        
+                        // Eliminar bala
+                        bullet.element.remove();
+                        bullets.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        }
+        
         // Función para detectar colisiones
         function checkCollisions() {
             if (!gameRunning || isInvulnerable) return;
@@ -286,14 +586,25 @@
                 let enemy = enemyCars[i];
                 let enemyRect = enemy.element.getBoundingClientRect();
                 
-                // Verificar si hay colisión
                 if (playerRect.left < enemyRect.right &&
                     playerRect.right > enemyRect.left &&
                     playerRect.top < enemyRect.bottom &&
                     playerRect.bottom > enemyRect.top) {
                     
-                    // ¡COLISIÓN DETECTADA!
-                    gameOver();
+                    // Colisión detectada
+                    playerStats.lives -= 1;
+                    
+                    if (playerStats.lives <= 0) {
+                        gameOver();
+                    } else {
+                        // Vida extra - seguir jugando
+                        isInvulnerable = true;
+                        player.style.opacity = "0.5";
+                        setTimeout(() => {
+                            isInvulnerable = false;
+                            player.style.opacity = "1";
+                        }, 2000);
+                    }
                     return;
                 }
             }
@@ -304,30 +615,47 @@
             gameRunning = false;
             clearInterval(spawnInterval);
             
-            // Cambiar color del jugador para indicar colisión
             player.style.background = '#ff6666';
             player.style.border = '2px solid #ff0000';
             
+            // Guardar puntos
+            playerStats.points += score;
+            saveStats();
+            
             setTimeout(() => {
-                alert(`¡GAME OVER!\n\nPuntos: ${score}\nTiempo: ${gameTime} segundos\nVelocidad final: ${spawnMultiplier}%\n\nPresiona R para reiniciar`);
+                alert(`¡GAME OVER!\n\nPuntos obtenidos: ${score}\nTiempo: ${gameTime} segundos\n\nPresiona R para volver a la tienda`);
             }, 100);
         }
         
         // Intervalos del juego
-        setInterval(updateGame, 100); // Actualizar puntos
-        setInterval(updateTimer, 1000); // Actualizar timer cada segundo
-        setInterval(moveEnemyCars, 50); // Mover enemigos
-        setInterval(checkCollisions, 30); // Detectar colisiones muy frecuentemente
+        let gameInterval, timerInterval, enemyMoveInterval, collisionInterval, cooldownInterval, bulletInterval;
         
-        // Temporizador para la invulnerabilidad y recarga
-        setInterval(() => {
-            if (cooldownTimer > 0) {
-                cooldownTimer -= 0.1;
-                updateCooldownBar();
-            }
-        }, 100);
+        function startGameIntervals() {
+            gameInterval = setInterval(updateGame, 100);
+            timerInterval = setInterval(updateTimer, 1000);
+            enemyMoveInterval = setInterval(moveEnemyCars, 50);
+            collisionInterval = setInterval(checkCollisions, 30);
+            bulletInterval = setInterval(moveBullets, 50);
+            
+            cooldownInterval = setInterval(() => {
+                if (cooldownTimer > 0) {
+                    cooldownTimer -= 0.1;
+                    updateCooldownBar();
+                }
+            }, 100);
+            
+            spawnInterval = setInterval(createEnemyCar, spawnRate);
+        }
         
-        let spawnInterval = setInterval(createEnemyCar, spawnRate); // Crear enemigos
+        function stopGameIntervals() {
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            clearInterval(enemyMoveInterval);
+            clearInterval(collisionInterval);
+            clearInterval(cooldownInterval);
+            clearInterval(bulletInterval);
+            clearInterval(spawnInterval);
+        }
         
         // Controles del jugador
         document.addEventListener('keydown', function(event) {
@@ -349,6 +677,9 @@
                 case ' ':
                     activateInvulnerability();
                     break;
+                case 'x':
+                    shoot();
+                    break;
             }
         });
         
@@ -360,41 +691,34 @@
             let enemyCar = document.createElement('div');
             let carType, carSpeed, carBehavior;
             
-            // Determinar el tipo de auto según las probabilidades
             if (randomType < 50) {
-                // Auto rojo (50%)
                 enemyCar.className = 'enemyCar redCar';
                 carType = 'red';
                 carSpeed = 5;
                 carBehavior = 'normal';
             } else if (randomType < 70) {
-                // Auto amarillo (20%)
                 enemyCar.className = 'enemyCar yellowCar';
                 carType = 'yellow';
-                carSpeed = 6.25; // 25% más rápido
+                carSpeed = 6.25;
                 carBehavior = 'normal';
             } else if (randomType < 90) {
-                // Auto verde (20%)
                 enemyCar.className = 'enemyCar greenCar';
                 carType = 'green';
                 carSpeed = 5;
                 carBehavior = 'drunk';
             } else {
-                // Auto morado (10%)
                 enemyCar.className = 'enemyCar purpleCar';
                 carType = 'purple';
                 carSpeed = 5;
                 carBehavior = 'normal';
             }
             
-            // Posición aleatoria en cualquier punto de la carretera
             let randomX = roadLeft + 10 + Math.random() * (roadRight - roadLeft - 50);
             enemyCar.style.left = randomX + 'px';
             enemyCar.style.top = carType === 'purple' ? '-60px' : '-30px';
             
             gameContainer.appendChild(enemyCar);
             
-            // Almacenar información adicional del enemigo
             enemyCars.push({
                 element: enemyCar,
                 type: carType,
@@ -413,12 +737,9 @@
                 let enemy = enemyCars[i];
                 let car = enemy.element;
                 
-                // Incrementar tiempo en pantalla
                 enemy.timeOnScreen += 0.05;
                 
-                // Comportamiento especial para autos verdes (ebrios)
-                if (enemy.behavior === 'drunk' && enemy.timeOnScreen >= 3) {
-                    // Moverse hacia el jugador
+                if (enemy.behavior === 'drunk' && enemy.timeOnScreen >= 5) {
                     if (playerPosition > enemy.x + 15) {
                         enemy.x += 1;
                     } else if (playerPosition < enemy.x + 15) {
@@ -426,12 +747,10 @@
                     }
                 }
                 
-                // Mover el auto hacia abajo
                 enemy.y += enemy.speed;
                 car.style.top = enemy.y + 'px';
                 car.style.left = enemy.x + 'px';
                 
-                // Eliminar carros que salieron de la pantalla
                 if (enemy.y > 600) {
                     car.remove();
                     enemyCars.splice(i, 1);
@@ -453,13 +772,11 @@
                 gameTime++;
                 timerElement.textContent = gameTime;
                 
-                // Cada 10 segundos aumentar la velocidad de spawn un 10%
                 if (gameTime % 10 === 0) {
                     spawnMultiplier += 10;
                     spawnRate = Math.max(300, 1000 - (spawnMultiplier - 100) * 10);
                     spawnRateElement.textContent = spawnMultiplier;
                     
-                    // Reiniciar el intervalo de spawn con nueva velocidad
                     clearInterval(spawnInterval);
                     spawnInterval = setInterval(createEnemyCar, spawnRate);
                 }
@@ -468,15 +785,16 @@
 
         // Función para reiniciar el juego
         function resetGame() {
+            // Limpiar intervalos
+            stopGameIntervals();
+            
+            // Reiniciar variables del juego
             playerPosition = 185;
             player.style.left = playerPosition + 'px';
-            
-            // Restaurar color original del jugador
             player.style.background = '#fff';
             player.style.border = '2px solid #333';
             player.style.opacity = "1";
             
-            // Reiniciar habilidades
             isInvulnerable = false;
             abilityReady = true;
             invulnerabilityTimer = 0;
@@ -492,27 +810,46 @@
             timerElement.textContent = '0';
             spawnRateElement.textContent = '100';
             
-            // Limpiar vehículos enemigos
+            // Limpiar vehículos enemigos y balas
             enemyCars.forEach(enemy => enemy.element.remove());
             enemyCars = [];
             
-            gameRunning = true;
+            bullets.forEach(bullet => bullet.element.remove());
+            bullets = [];
             
-            // Reiniciar intervalos
-            clearInterval(spawnInterval);
-            spawnInterval = setInterval(createEnemyCar, spawnRate);
+            // Volver a la tienda
+            gameRunning = false;
+            document.getElementById('shop').style.opacity = "1";
+            startButton.disabled = false;
+            startButton.textContent = "Jugar de nuevo";
+            
+            // Actualizar puntos disponibles
+            updateShopDisplay();
         }
+        
+        // Iniciar juego
+        startButton.addEventListener('click', function() {
+            if (gameRunning) return;
+            
+            this.disabled = true;
+            document.getElementById('shop').style.opacity = "0.7";
+            gameRunning = true;
+            startGameIntervals();
+        });
         
         // Detectar tecla R para reiniciar
         document.addEventListener('keydown', function(event) {
-            if(event.key.toLowerCase() === 'r') {
+            if(event.key.toLowerCase() === 'r' && !gameRunning) {
                 resetGame();
             }
         });
         
+        // Cargar estadísticas al inicio
+        loadStats();
+        
         // Mensaje de inicio
         setTimeout(function() {
-            alert('¡Bienvenido al Juego de Carretera Mejorado!\n\nUsa las flechas ← → para moverte\nEspacio: Activar invulnerabilidad (2s de duración, 3s de recarga)\n\n¡Disfruta conduciendo!');
+            alert('¡Bienvenido al Juego de Carretera con Tienda!\n\nUsa las flechas ← → para moverte\nEspacio: Invulnerabilidad (2s)\nX: Disparar (si tienes la mejora)\n\nCompra mejoras entre partidas para hacerte más fuerte.');
         }, 500);
         
     </script>
